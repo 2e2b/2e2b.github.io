@@ -73,3 +73,89 @@ Level 8: This level contained a massive text file called data.txt and the passwo
 > grep "millionth" data.txt
 
 showed me the password (dfwvzFQi4mU0wfNbFOe9RoWskMLg7eEc)
+
+---
+
+Level 9: This level contains another massive file called data.txt and the password is the only unique line in the file. This would call for use of the uniq command, but uniq can only detect duplicate lines that are right next to each other, so the sort command is also necessary. 
+
+>sort data.txt | uniq -u
+
+This command passes the sorted data list into uniq -u, which discards all duplicates. This left behind only one line, the password (4CKMh1JI91bUIZZPXDqGanal4xvAg0JM)!
+
+---
+
+Level 10: The password is stored somewhere in data.txt, which is mostly unprintable characters (garbage data) and is perceded by a few = signs. To clean up all of the unreadable data, I used the strings command. This command throws away all unprintable characters, leaving behind only printable ones. I then passed the output of that into the grep command to find "===".
+
+>strings data.txt | grep "==="
+
+This spat out the password (FGUW5ilLVJrxX9kMYMmlN4MgbpfMiqey)
+
+---
+
+Level 11: The password is stored in data.txt, which is encoded in base64. To decode base64, I used 
+> base64 -d data.txt
+
+which gave "The password is dtR173fZKb0RRsDFSGsg2RWnpNVj3qRr"
+
+---
+
+Level 12: The password is stored in data.txt, where all lowercase and uppercase letters have been rotated 13 positions from normal. To decode this, I used the tr command, which can be used to replace characters with different characters in the same string (give it 2 arrays of characters and it will replace each instance of a character in array 1 with the corresponding array 2 character)
+
+> cat data.txt | tr "A-Za-z" "N-ZA-Mn-za-m"
+
+Outputs "The password is 7x16WNeHIi5YkIhWsfFIqoognUTyj9Q4"
+
+--- 
+
+Level 13: The data.txt file in this level is a hexdump of the password which has been repeatedly compressed using different compression algorithms. To solve this, I made a temp directory and then used xxd -r data.txt to get the original file (un-hexdump it). From there, I had to unzip it like 9 times using bunzip2 (for bzip2 archive), gunzip (for zip.gz) archive, and tar -x (for tar archive). I also used the file command to identify what files were inside, as they often had the wrong extensions. After a lot of unzipping, I got a text file saying "The password is FO5dwFsc0cbaIiH0h8J2eUks2vdTDwAn"
+
+---
+
+Level 14: This level contained an ssh private key that could be used to log in to the next level. I copied it out of terminal using cat sshkey.private and pasted it into a file called sshkey.private on my machine. To log in to the next level, I used 
+
+>ssh -i sshkey.private bandit14@bandit.labs.overthewire.org -p 2220
+
+This used the ssh key to authenticate my login, allowing me to access the password, which the level said was at /etc/bandit_pass/bandit14. The password was MU4VWeTyJk8ROof1qqmcBPaLh7lDCPvS.
+
+---
+
+Level 15: This level wanted me to (from level 14) submit the password I just got to localhost on port 30000. I did 
+> telnet 127.0.0.1 30000
+
+to connect, and then pasted in the password from earlier. I then got the message "Correct!" followed by the next password (8xCjnmgoKbGLhHFAZlGE5Tmu4M2tKJQo).
+
+---
+
+Level 16: For this level, I am supposed to submit the password to the current level over a ssl connection. To figure this out, I spent some time reading about openssl and ncat until I find openssl s_client, which is a command that allows you to make a connection over ssl. I used the connect flag, as that's what we're trying to do. 127.0.0.1:30001 is the localhost port the level wanted
+> openssl s_client -connect 127.0.0.1:30001
+
+and then pasted in the password and sent it. I got back the next password, kSkvUpMQ7lBYyCM4GBPvCvT1BfWRy0Dx.
+
+---
+
+Level 17: For this level, I needed to find an ssl server on a port somewhere between 31000 and 32000 that would give me the right password if I sent it the current one. For this task, I immediately thought of nmap, and did a bit of research to figure out how to use it to find ssl ports. The -sV flag was what I was looking for. This quickly pointed me to port 31790 as the correct port. However, there was another issue. Apparently, openssl doesn't like it when your submission begins with a "k" (treats it as a key update rather then sending data). Overthewire mentioned the fix for this was located in the man page for openssl s_client, and it turns out the ign_eof flag was what I wanted.
+
+>openssl s_client -ign_eof -connect 127.0.0.1:31790 -ign_eof
+
+The server gave me a long RSA private key that I would use to log in to the next level. 
+
+---
+
+Level 18: This level is pretty easy. It gives me 2 lists of passwords and tells me that they are the same except for one particular line. That different line in passwords.new is the correct password. To solve this, I simply did 
+> diff passwords.old passwords.new
+
+which said that line 42 was the only different one. Line 42 in passwords.new is x2gLTTjFwMOhQ8oWNbMN362QKxfRqGlO, which is the correct password!
+
+---
+
+Level 19: Whenever you try to log in, you will immediately be logged out due to a bad .bashrc configuration. As such, we need to utilize another function of ssh: running commands directly. After all the normal arguments, you can put any command and ssh will run it on the target machine, bypassing the instant logout. To do this, I did 
+> ssh bandit18@bandit.labs.overthewire.org -p 2220 cat readme
+
+This read the contents of the readme file, which contained the password (cGWpMaKXVwDUNgPAVJbWYuGHVn9zl3j8).
+
+---
+
+Level 20: To complete this level, I needed to use to bandit20-do executable file to run commands as the user bandit20. The path to the password file was /etc/bandit_pass/bandit20, so I ran the following in order to use bandit20-do
+> ./bandit20-do cat /etc/bandit_pass/bandit20
+
+which gave me the next password (0qXahG8ZjOVMN9Ghs7iOWsCfZyXOUbYO)
