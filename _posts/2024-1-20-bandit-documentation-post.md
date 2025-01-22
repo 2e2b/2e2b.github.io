@@ -159,3 +159,31 @@ Level 20: To complete this level, I needed to use to bandit20-do executable file
 > ./bandit20-do cat /etc/bandit_pass/bandit20
 
 which gave me the next password (0qXahG8ZjOVMN9Ghs7iOWsCfZyXOUbYO)
+
+---
+
+Level 21: This level was very confusing. It required us to use another executable binary which, when used, would connect to localhost on some port and then listen for incoming data sent to it. If that data contained the current level's password, it would output the next level's password. To do this, I started researching potential ways to host something in such a way it would send the data when something connected to it, which eventually (after about 15 minutes of reading man pages) lead me to the nc command. nc (short for netcat) could listen on TCP ports, which lead me on to the fact that it was the command I needed. The -l flag would allow it to listen for connections, and the -p let me specify a port. Now I had all the tools to solve the problem, but I still needed to figure out how nc worked. Here is the command I eventually came up with
+> echo "0qXahG8ZjOVMN9Ghs7iOWsCfZyXOUbYO" | nc -l -p 5000
+
+This command passed the text phrase (the password) into nc, and had it serve that on port 5000. Now to feed that password into suconnect, I did
+> ./suconnect 5000
+
+This allowed it to read from the port, and it gave me the next password! (EeoULMCra2q0dSkYj561DX7s1CpBuOBt)
+
+---
+
+Level 22: 
+
+This level asked us to investigate a cron job that was running on the server. The bandit level's description pointed me towards a seemingly malfunctioning cron job that was running the following command
+
+>/usr/bin/cronjob_bandit22.sh &> /dev/null
+
+/dev/null is nowhere, so whatever the output of cronjob_bandit22.sh isn't somewhere we can read. Not yet, at least. I hopped on over to see what commands were inside cronjob_bandit22.sh and found that it was running this command:
+
+>cat /etc/bandit_pass/bandit22 > /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+
+Which means that the password for bandit22 was getting put into /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv. Another hop over there found me the t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv file, which contained the password (tRae0UfB9v0UzbCdn9cY0gQnds9GF58Q)
+
+---
+
+Level 23: 
