@@ -187,3 +187,92 @@ Which means that the password for bandit22 was getting put into /tmp/t7O6lds9S0R
 ---
 
 Level 23: 
+
+This level involved examining another cron job to see what it was doing. This quickly pointed me to the script being executed, which was running the following code: 
+> #!/bin/bash
+>
+>myname=$(whoami)
+>mytarget=$(echo I am user $myname | md5sum | cut -d ' ' -f 1)
+>
+>echo "Copying passwordfile /etc/bandit_pass/$myname to /tmp/$mytarget"
+>
+>cat /etc/bandit_pass/$myname > /tmp/$mytarget
+
+This code was calculating an md5 hash of the string "I am user (username)" and pasting the password it into /tmp/(hash). In order to figure out where the password was, I had to calculate the hash for "I am user bandit23" (in order to log in to bandit23). Luckily, the code was already there for me to use, except I modified it a bit first. 
+
+>echo I am user bandit23 | md5sum | cut -d ' ' -f 1
+
+Which gave me the hash 8ca319486bfbbc3663ea0fbe81326349. From there, all I needed to do was run
+
+> cat /tmp/8ca319486bfbbc3663ea0fbe81326349
+
+and I got the password (0Zf11ioIjMVN551jX3CmStKLYqjk54Ga)
+
+---
+
+Level 24:
+
+In this level, there is a cronjob that goes in and runs all scripts in the folder /var/spool/bandit24/foo as the user bandit24. However, we have write access to this directory. Time to prepare a .sh injection script for this cronjob to run. In my script, I wrote
+> cat /etc/bandit_pass/bandit24 > /tmp/tmp.WLTx7GEp9L/password.txt
+
+This way, the script (running as user bandit24, would access its own password and put it somewhere I can see it. 
+To put the script where it would get run, I did
+> cp script.sh /var/spool/bandit24/foo/script.sh
+
+I also made a password.txt file with
+
+>touch password.txt
+
+However, after 1 minute, the script had been deleted but no password had appeared in password.txt. This was perplexing, but then I realized that bandit24 probably didn't have access to password.txt. To rectify this, I gave it permission with 
+> chmod 777 password.txt
+
+I also copied my script in and gave it full access to the script with
+> chmod 777 /var/spool/bandit24/foo/script.sh
+
+After another little while, the next password showed up in password.txt! (gb8KRRCsshuZXI0tUuR6ypOFjiZbf3G8)
+
+---
+
+Level 25: This level said that there was something listening on port 30002 that would give me the next password if I gave it the current password and a 4-digit pin that had to be bruteforced. Time to write a bash script to try all of them!
+
+Here is the bash script I came up with
+>#!/bin/bash
+>
+>for i in {0..10000};
+>do
+>echo "gb8KRRCsshuZXI0tUuR6ypOFjiZbf3G8 $i" | nc 127.0.0.1 30002 > output.txt;
+>done
+
+However, this tried the first pincode and then got stuck, so I needed to rearrange it. My next thought was maybe I could somehow echo all of it into string, and then send it through nc so it would run all of them. While trying to figure out how to write all this, I realized you could pipe the entire output of a for loop into something by using a pipe after the done command. This worked! Since the for loop was spitting out the attempts line by line, I could pipe them into nc as so
+>#!/bin/bash
+>
+>for i in {0..10000};
+>do
+>echo "gb8KRRCsshuZXI0tUuR6ypOFjiZbf3G8 $i";
+>done | nc 127.0.0.1 30002
+
+After a lot of wrong attempts, this automated script eventually gave me the next password (iCi86ttT4KSNe1armKiwbQNmB3YJP3q4)
+
+---
+
+Level 26
+
+Inside this level, there was an ssh key for the next user. Because of this, I immediately copy-pasted the key into a file on my machine, then ssh'd into bandit26.
+> ssh -i bandit26.sshkey bandit26@bandit.labs.overthewire.org -p 2220
+However, this immediately logged me out, and I realized (from the level description) that the user bandit26's path to a shell wasn't the normal one. So, I googled where to find the path to a given user's default shell, and I found from google that the default shell is always the last line of /etc/passwd for a given user. When I opened up /etc/passwd, I found that bandit26's shell was actually located at /usr/bin/showtext, which is not the normal shell. Upon looking at this command, I saw that it was a simple script that sent some text and then exited, instead of spawning a bash shell like we wanted. Somehow, we had to modify this file so it would let us in. Since the /usr/bin/showtext was running the more command on the big text banner, I decided to read the manpage on more to see what it could do. What caught my eye is that it will display text page by page if it wouldn't all fit on screen, and that it had an editor mode that could be accessed by pushing v. if I made my terminal window small enough, maybe the more command would have to split the banner across multiple pages, which would give me a window to open up a text editor and somehow  change the shell to /bin/bash? Time to put this theory to the test. I scrunched my terminal down, ran
+> ssh -i bandit26.sshkey bandit26@bandit.labs.overthewire.org -p 2220
+
+and the more window opened up instead of exiting. From there, I pushed v and was brought to vim. I don't really know how to use vim, but I found that you could enter command mode by typing colon, but I didn't know any vim editor commands either. This is why we use google! Turns out you can change the shell from a vim editor by using the set shell command. I typed in
+> :set shell=/bin/bash
+and it seemed to work. To start the shell, I ran
+> :shell
+and I was in. Yay! I quickly grabbed bandit26's password (s0773xxkk0MXfdqOfPRVr9L3jJBUOgCZ)
+
+---
+
+Level 27
+
+Level 27 picks up right where level 26 left off, and there is an executable binary called bandit27-do that lets you run commands as bandit27. That's convenient! I ran 
+> ./bandit27-do cat /etc/bandit_pass/bandit27
+
+and immediately had the password. (upsNCc7vzaRDx6oZC6GiR6ERwe1MowGB)
