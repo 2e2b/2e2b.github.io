@@ -276,3 +276,94 @@ Level 27 picks up right where level 26 left off, and there is an executable bina
 > ./bandit27-do cat /etc/bandit_pass/bandit27
 
 and immediately had the password. (upsNCc7vzaRDx6oZC6GiR6ERwe1MowGB)
+
+---
+
+Level 28:
+This level asked me to clone a repository using git and to find the password in it. To clone the repo, I used
+> git clone git clone ssh://bandit27-git@localhost:2220/home/bandit27-git/repo
+
+The important bit is the localhost:2220 as that was a slight modification of the url given so I could connect over the correct port.
+Once inside the repo, the password was inside a plain text file called README. It was Yz9IpL0sBcCeuG7m9uQFt8ZNpS4HZRcN.
+
+---
+
+Level 29:
+
+This level asked me to find the password from another git repo. After cloning it like I did in the previous step, I opened the README.md to check out what was going on. There was no password in there, so I went back to the man page for git as the level said I only needed the git command to solve the level. It was there that I found git log. This command lets you see past versions of a file, which, seeing as the only file in the repository was README.md, seemed promising. I did
+> git log
+
+and found a log entry saying "fixed info leak", which seemed promising. I then did 
+
+> git show 3621de89d8eac9d3b64302bfb2dc67e9a566decd
+
+to see the log entry, and found that the password was in a previous version of the file (4pT1t5DENaYuqnqvadYs1oE4QLCdjmJ7)
+
+---
+
+Level 30: 
+
+This level had very much the same setup as the last one, but there was no information in the log. So, I then tried ls -a to see hidden files, but all that I found were a bunch of config files and nothing interesting in there. Then I remembered Github's branch system, which is how multiple people work on code at the same time. I did a bit of googling to find out how to see all branches with git, and came up with the git branch command. To see all branches, I did
+> git branch -a
+
+Which showed me another branch called "sploits-dev". Interesting...
+
+> git show /remotes/origin/sploits-dev
+
+but it turned out to have just a bunch of random stuff in it, and nothing that looked like a password. There were still two other branches to check out, though!
+
+> git show /remotes/origin/dev
+
+And, in the dev branch, it showed us a change that contained the password (qp30ex3VLz5MDG1n91YowTv4Q8l7CDZL)
+
+---
+
+Level 31: 
+
+This is another git repo level. There was no sign of anything of anything in the logs and there was also nothing in any other branch, but then I remembered the releases from Github and decided to figure out if this project had any. This immediately led me to tags, another way to see points in the project's history. To check and see if this project had any tags, I did
+> git tag
+
+which showed me one tag called "secret". 
+Further investigation with 
+> git show secret
+
+gave me the password (fb5S2xb7bRyFmAvQYQGEqsbhVyJqhnDy)
+
+---
+
+Level 32: 
+
+This level wanted me to push a file called key.txt with the contents "May I come in?" to origin. To do this, I first made the key.txt file and then did 
+> git commit
+
+but nothing was being committed (even though I just created a file). To figure out why, I did ls -a and found a .gitignore telling git to ignore all txt files. A quick google search told me the way to override this was by doing 
+> git add -f key.txt
+
+followed by
+> git commit
+
+This pulled up a nano editor asking for a message to go with my commit. The README didn't say anything about a message, so I just wrote "commit" and then sent it. 
+After doing this, I pushed my commit to origin/master with
+> git push origin master
+
+And, scattered among the terminal messages that git push spat out, there was the next password (3O9RfhqyAlVBEZpVb6LYStshZoqoSx5K)
+
+---
+
+Level 33: 
+
+After I ssh'd into this level, I got a very confusing message "Welcome to the uppercase shell". This was bad, as it meant that every command I knew about (which happened to be written in lowercase letters) didn't work here. So, I googled "What things are uppercase in linux?, and the answer turned out to be only variables. Naturally, it's time to find an environmental variable (special variable containing information about the device / shell) that will activate some kind of normal shell that takes normal commands when run. It turns out the set command lists all the environmental variables, so I logged back into a different banit level and did set to see if there was anything interesting. The first thing that was listed was the path to bash, which was stored in the BASH environmental variable. 
+
+However, none of these seemed to be able to run anything. The most promising things I found were that bash variable from earlier and another environmental variable called $SHELL that contained the name of the shell running. However, some googling found that the $SHELL variable was actually set by the login, which is what put me in this nonsense uppercase shell in the first place. What I needed was to somehow be able to access something underneath the uppercase shell, since I had a feeling it was some kind of strange executable that was running on top of a real shell. 
+
+And then, I found it. The linux environmental variable that contained the process running, $0. It said that if it was invoked inside a script, it would correspond to the script, and if it was executed inside a shell, it would point to the shell. What was different about $0 is that it could actually call that script / executable thing. Time to see what was underneath the uppercase shell!
+> $0
+
+And the uppercase shell disappeared and I could do regular command-line stuff again. Turns out, my hunch was correct that there was a real shell underneath the uppercase one. This let me navigate to bandit_pass and grab the final password (tQdtbs5D5i2vJwkO8mEyYEyTL8izoeJ0)
+
+---
+
+#Final thoughts
+
+Overall, the bandit challenge was super fun. Most of the levels I did not find too difficult, but some (most notably the last one and level 26) were very challenging and required a bit of research into how linux works as an operating system. Overall, I would definitely recommend it, as I feel like the "figure it out" approach is much better when it comes to learning linux.
+
